@@ -1,23 +1,48 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:UTS.AvaloniaUI.ComponentTask1.ViewModels"
-		xmlns:tc="clr-namespace:UTS.AvalonaiUI.ComponentTask1.TickChartControl;assembly=TickChartControl"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:custom="clr-namespace:TickChartControl;assembly=TickChartControl"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="UTS.AvaloniaUI.ComponentTask1.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="UTS.AvaloniaUI.ComponentTask1">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
-	
-	<Grid>		
-        <tc:TickChart x:Name="Chart" HorizontalAlignment="Center" VerticalAlignment="Center"/>        
-    </Grid>
+	<Design.DataContext>
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
 
+	<Grid RowDefinitions="Auto, *" ColumnDefinitions="200, *">
+
+		<StackPanel Grid.Row="1" Grid.Column="0" Spacing="10" Margin="10">
+			<TextBlock Text="Settings" FontWeight="Bold" FontSize="16"/>
+
+			<TextBlock Text="Max Visible Ticks:"/>
+			<NumericUpDown Value="{Binding MaxTicks}"
+                           Minimum="100"
+                           Maximum="10000"
+                           Increment="50"/>
+
+			<TextBlock Text="Theme:"/>
+			<ComboBox ItemsSource="{Binding PlotThemes}"
+                      SelectedItem="{Binding SelectedPlotTheme}"/>
+
+			<Button Content="{Binding ButtonText}"
+                    Command="{Binding StartStopCommand}"
+                    HorizontalAlignment="Stretch"
+                    Margin="0,20,0,0"/>
+		</StackPanel>
+
+		<Border Grid.Row="1" Grid.Column="1"
+                BorderBrush="Gray"
+                BorderThickness="1"
+                Margin="5">
+			<custom:TickChart x:Name="LiveChart"
+                              MaxVisibleTicks="{Binding MaxTicks}"
+                              PlotTheme="{Binding SelectedPlotTheme}"/>
+		</Border>
+
+	</Grid>
 </Window>
