@@ -104,11 +104,33 @@ namespace TickChartControl
         {
             if (PART_PlotView == null || _dataLogger == null) return;
 
+            // Добавляем новый тик
             _dataLogger.Add(value);
-            int currentLength = _dataLogger.Data.Coordinates.Count;
 
-            // Сдвиг окна X так, чтобы отображались только последние MaxVisibleTicks
-            PART_PlotView.Plot.Axes.SetLimitsX(currentLength - MaxVisibleTicks, currentLength);
+            // Если данные превысили MaxVisibleTicks — удаляем самые старые, чтобы остались только последние MaxVisibleTicks
+            int currentLength = _dataLogger.Data.Coordinates.Count;
+            if (MaxVisibleTicks <= 0)
+            {
+                // Защитная проверка: если MaxVisibleTicks некорректно задан, не делаем удалений, но избегаем деления на ноль и т.п.
+                currentLength = _dataLogger.Data.Coordinates.Count;
+            }
+            else if (currentLength > MaxVisibleTicks)
+            {
+                int toRemove = currentLength - MaxVisibleTicks;
+                // Удаляем первые toRemove элементов (старые тики)
+                for (int i = 0; i < toRemove; i++)
+                {
+                    // Coordinates реализует IList<T>, поэтому RemoveAt(0) корректно удаляет самый старый элемент
+                    _dataLogger.Data.Coordinates.RemoveAt(0);
+                }
+
+                currentLength = _dataLogger.Data.Coordinates.Count;
+            }
+
+            // Сдвиг окна X так, чтобы отображались только последние MaxVisibleTicks (или весь доступный диапазон)
+            double left = Math.Max(0, currentLength - MaxVisibleTicks);
+            double right = currentLength;
+            PART_PlotView.Plot.Axes.SetLimitsX(left, right);
 
             // Автоматическое масштабирование по оси Y
             PART_PlotView.Plot.Axes.AutoScaleY();
