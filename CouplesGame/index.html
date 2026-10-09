@@ -1,0 +1,452 @@
+<title>Двое: игра для пар</title>
+<meta name="theme-color" content="#1a0b12">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Manrope:wght@400;600;800&display=swap">
+<style>
+/* Layout: one-screen app — header with turn, a single playing card in the middle, action bar at the bottom. Deliberately dark-only: a night game. */
+:root{
+  --bg:#1a0b12; --surface:#2a1420; --line:#4a2536;
+  --fg:#f7e9ee; --muted:#bf9aa9;
+  --rose:#ff4f7b; --rose-deep:#c21d4c; --gold:#f2c27b;
+  --card-fg:#2a0d18; --card-bg:#ffe9ef;
+  --display:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  --body:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;-webkit-tap-highlight-color:transparent;
+  background-image:radial-gradient(120% 60% at 50% -10%, #3a1225 0%, transparent 60%);}
+.app{max-width:460px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:14px;padding:14px 16px 18px}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+h1,h2{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.brand{font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:.5px}
+.brand i{color:var(--rose);font-style:italic}
+.iconbtn{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font-size:18px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.tabs button{padding:10px 4px;border-radius:10px;font-size:13px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--rose-deep);color:#fff}
+.levels{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--rose);color:var(--fg);background:rgba(255,79,123,.14)}
+.turn{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
+.turn b{font-family:var(--display);font-size:24px;color:var(--fg);font-weight:700}
+.score{font-variant-numeric:tabular-nums;letter-spacing:.06em;text-transform:uppercase;font-size:11px}
+.stage{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;min-height:320px}
+.card{position:relative;background:var(--card-bg);color:var(--card-fg);border-radius:22px;padding:26px 22px 22px;min-height:300px;display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 0 6px rgba(255,79,123,.12);transform-origin:50% 60%}
+.card.flip{animation:flip .45s cubic-bezier(.2,.7,.2,1)}
+@keyframes flip{0%{transform:rotateY(80deg) scale(.94);opacity:.2}100%{transform:none;opacity:1}}
+.kind{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--rose-deep)}
+.text{font-family:var(--display);font-size:clamp(26px,7vw,32px);line-height:1.15;font-weight:600;flex:1;display:flex;align-items:center;text-wrap:pretty}
+.meta{display:flex;justify-content:space-between;font-size:12px;color:#8a5468;font-weight:600}
+.heart{position:absolute;right:18px;top:16px;width:28px;height:28px;opacity:.85}
+.choose{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{padding:16px 10px;border-radius:16px;font-weight:800;font-size:16px;letter-spacing:.02em}
+.big.truth{background:var(--surface);border:1px solid var(--line)}
+.big.dare{background:var(--rose);color:#fff}
+.big.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:600;font-size:14px}
+.big.done{background:var(--gold);color:#2a1408}
+.row{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+/* dice */
+.dice{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.die{background:var(--card-bg);color:var(--card-fg);border-radius:18px;aspect-ratio:1;max-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.die small{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--rose-deep)}
+.die span{font-family:var(--display);font-weight:700;font-size:clamp(17px,5vw,21px);line-height:1.05}
+.die.roll{animation:roll .6s cubic-bezier(.3,.6,.3,1)}
+@keyframes roll{0%{transform:rotate(-200deg) scale(.6)}70%{transform:rotate(12deg) scale(1.05)}100%{transform:none}}
+.sentence{font-family:var(--display);font-size:26px;line-height:1.2;text-align:center;min-height:64px;text-wrap:balance}
+.timer{font-variant-numeric:tabular-nums;font-size:44px;font-weight:800;text-align:center;color:var(--gold)}
+/* sheets */
+.sheet{position:fixed;inset:0;background:rgba(10,3,7,.72);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.panel{width:100%;max-width:460px;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;max-height:88%;overflow:auto}
+.panel h2{font-size:28px}
+.panel p{margin:0;color:var(--muted);line-height:1.5}
+label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+input[type=text]{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--fg);font:inherit;font-size:16px}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mylist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.mylist li{display:flex;gap:8px;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px}
+.mylist li span{min-width:0;overflow-wrap:anywhere}
+.mylist li em{font-style:normal;font-size:11px;color:var(--rose);font-weight:800;text-transform:uppercase;letter-spacing:.08em;flex:none}
+.adder{display:grid;grid-template-columns:1fr auto auto;gap:6px}
+.adder button{padding:0 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:13px;font-weight:600}
+.note{font-size:12px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){.card.flip,.die.roll{animation:none}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">Двое <i>&amp;</i> ночь</div>
+    <div style="display:flex;gap:8px">
+      <button class="iconbtn" id="btnCustom" aria-label="Свои задания">✎</button>
+      <button class="iconbtn" id="btnSettings" aria-label="Игроки и настройки">⚙</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-mode="tod" aria-selected="true">Правда / Действие</button>
+    <button role="tab" data-mode="dice" aria-selected="false">Кубики</button>
+    <button role="tab" data-mode="talk" aria-selected="false">Разговоры</button>
+  </nav>
+
+  <div class="levels" id="levels">
+    <button class="chip" data-level="1" aria-pressed="true">Нежно</button>
+    <button class="chip" data-level="2" aria-pressed="false">Флирт</button>
+    <button class="chip" data-level="3" aria-pressed="false">Жарко 18+</button>
+  </div>
+
+  <div class="turn">
+    <span>Сейчас ходит<br><b id="who">Аня</b></span>
+    <span class="score" id="score">0 : 0</span>
+  </div>
+
+  <!-- Truth or dare -->
+  <section class="stage" id="modeTod">
+    <article class="card" id="card">
+      <svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path fill="#ff4f7b" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.4h2c.7-1.2 2.2-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>
+      <div class="kind" id="kind">Пример · Действие</div>
+      <div class="text" id="text">Поцелуй партнёра туда, куда он сам покажет.</div>
+      <div class="meta"><span id="levelName">Нежно</span><span id="left"></span></div>
+    </article>
+    <div class="choose" id="chooseRow">
+      <button class="big truth" id="btnTruth">Правда</button>
+      <button class="big dare" id="btnDare">Действие</button>
+    </div>
+    <div class="row" id="doneRow" hidden>
+      <button class="big ghost" id="btnSkip">Пропуск</button>
+      <button class="big done" id="btnDone">Выполнено ✓</button>
+    </div>
+  </section>
+
+  <!-- Dice -->
+  <section class="stage" id="modeDice" hidden>
+    <div class="dice">
+      <div class="die" id="d1"><small>Что</small><span>Поцелуй</span></div>
+      <div class="die" id="d2"><small>Где</small><span>Шея</span></div>
+      <div class="die" id="d3"><small>Сколько</small><span>30 сек</span></div>
+    </div>
+    <div class="sentence" id="diceSentence"><b id="diceWho">Аня</b>: поцелуй — шея, 30 секунд</div>
+    <div class="timer" id="timer" hidden>0:30</div>
+    <div class="row">
+      <button class="big ghost" id="btnTimer">Таймер</button>
+      <button class="big dare" id="btnRoll">Бросить кубики</button>
+    </div>
+  </section>
+
+  <!-- Talk -->
+  <section class="stage" id="modeTalk" hidden>
+    <article class="card" id="talkCard">
+      <div class="kind">Вопрос для двоих</div>
+      <div class="text" id="talkText">Какой момент наших отношений ты бы прожил(а) ещё раз?</div>
+      <div class="meta"><span>Отвечаете оба по очереди</span><span></span></div>
+    </article>
+    <button class="big dare" id="btnTalk">Следующий вопрос</button>
+  </section>
+
+  <p class="note">Бесплатно и без рекламы. Всё хранится только на этом телефоне.</p>
+</div>
+
+<!-- Settings sheet -->
+<div class="sheet" id="sheetSettings" hidden>
+  <div class="panel">
+    <h2>Кто играет?</h2>
+    <div class="names">
+      <label>Игрок 1<input type="text" id="p1" maxlength="20" placeholder="Аня"></label>
+      <label>Игрок 2<input type="text" id="p2" maxlength="20" placeholder="Миша"></label>
+    </div>
+    <p>Игроки ходят по очереди. За выполненное задание даётся очко, за пропуск очков нет.</p>
+    <button class="big ghost" id="btnReset">Обнулить счёт</button>
+    <button class="big dare" id="btnSaveSettings">Играть</button>
+  </div>
+</div>
+
+<!-- Custom tasks sheet -->
+<div class="sheet" id="sheetCustom" hidden>
+  <div class="panel">
+    <h2>Свои задания</h2>
+    <p>Добавленные задания попадут в колоду на всех уровнях.</p>
+    <div class="adder">
+      <input type="text" id="customInput" maxlength="160" placeholder="Например: станцуй медленный танец">
+      <button id="addTruth">+ Правда</button>
+      <button id="addDare">+ Действие</button>
+    </div>
+    <ul class="mylist" id="customList"></ul>
+    <button class="big dare" id="btnCloseCustom">Готово</button>
+  </div>
+</div>
+
+<script>
+const DECK = {
+  1: {
+    truth: [
+      "Что ты почувствовал(а), когда впервые увидел(а) меня?",
+      "Какая моя привычка тебя умиляет больше всего?",
+      "Какое наше свидание было для тебя самым лучшим?",
+      "Когда ты понял(а), что влюбился(ась)?",
+      "Что во мне ты бы никогда не захотел(а) изменить?",
+      "Какую песню ты ассоциируешь с нами?",
+      "О чём ты мечтаешь, когда думаешь о нашем будущем?",
+      "Какой мой поступок тронул тебя до слёз?",
+      "Что тебе нравится делать со мной больше всего на свете?",
+      "Какой комплимент от меня ты запомнил(а) надолго?",
+      "Куда бы ты хотел(а) поехать со мной вдвоём?",
+      "Что ты делаешь, когда скучаешь по мне?",
+      "Какое моё фото тебе нравится больше всего и почему?",
+      "Чему ты научился(ась) благодаря мне?",
+      "Какой момент сегодня был для тебя самым приятным?"
+    ],
+    dare: [
+      "Обними партнёра и не отпускай 30 секунд.",
+      "Скажи три вещи, за которые ты благодарен(на) партнёру.",
+      "Сделай партнёру массаж рук в течение минуты.",
+      "Поцелуй партнёра в лоб, нос и щёку.",
+      "Станцуйте медленный танец под любую песню.",
+      "Посмотрите друг другу в глаза минуту, не отводя взгляд.",
+      "Нарисуй пальцем сердце на спине партнёра.",
+      "Прошепчи партнёру на ухо самый нежный комплимент.",
+      "Расскажи, как прошло ваше первое свидание, от лица партнёра.",
+      "Сделай партнёру массаж плеч в течение двух минут.",
+      "Спой партнёру строчку из песни про любовь.",
+      "Пообещай партнёру маленький сюрприз на этой неделе.",
+      "Покорми партнёра чем-нибудь вкусным.",
+      "Обними партнёра со спины и опиши, что ты чувствуешь.",
+      "Придумай партнёру новое ласковое прозвище."
+    ]
+  },
+  2: {
+    truth: [
+      "Что во мне тебя привлекло в первую очередь?",
+      "Какая часть моего тела тебе нравится больше всего?",
+      "Какой мой наряд сводит тебя с ума?",
+      "Где тебе больше всего нравится, когда я тебя целую?",
+      "О чём ты подумал(а), когда мы впервые поцеловались?",
+      "Какой мой взгляд или жест кажется тебе самым соблазнительным?",
+      "Был ли момент, когда ты хотел(а) меня поцеловать, но сдержался(ась)?",
+      "Какой романтический сценарий ты прокручивал(а) в голове?",
+      "Какой аромат на мне тебе нравится больше всего?",
+      "Что бы ты хотел(а), чтобы я делал(а) чаще?",
+      "Какое наше свидание было самым волнующим?",
+      "Ты когда-нибудь ревновал(а) меня? Когда?",
+      "Что ты делаешь, чтобы мне понравиться, а я этого не замечаю?",
+      "Какое моё сообщение заставило тебя покраснеть?",
+      "Опиши наш идеальный вечер вдвоём."
+    ],
+    dare: [
+      "Поцелуй партнёра в шею.",
+      "Прошепчи партнёру на ухо, что ты хочешь с ним сделать сегодня вечером.",
+      "Подари партнёру поцелуй длиной 15 секунд.",
+      "Сядь партнёру на колени до конца следующего хода.",
+      "Медленно проведи пальцами по руке партнёра от запястья до плеча.",
+      "Поцелуй партнёра туда, куда он сам покажет (в пределах лица и шеи).",
+      "Сделай партнёру комплимент, глядя ему в глаза и не улыбаясь.",
+      "Покажи свой самый соблазнительный взгляд.",
+      "Станцуй для партнёра 30 секунд.",
+      "Завяжи партнёру глаза и поцелуй его три раза в разные места.",
+      "Сними с партнёра один аксессуар зубами.",
+      "Сделай партнёру массаж шеи в течение минуты.",
+      "Опиши партнёру ваш первый поцелуй шёпотом.",
+      "Пусть партнёр выберет, где ты его поцелуешь.",
+      "Обними партнёра и медленно поцелуй его ухо."
+    ]
+  },
+  3: {
+    truth: [
+      "Какая твоя самая смелая фантазия со мной?",
+      "Что тебя заводит во мне сильнее всего?",
+      "Где бы ты хотел(а) заняться со мной любовью, кроме дома?",
+      "Какое прикосновение моё тебе нравится больше всего?",
+      "Что ты ещё не решался(ась) мне предложить?",
+      "Какая наша ночь запомнилась тебе больше всего?",
+      "Что бы ты хотел(а), чтобы я надел(а) для тебя?",
+      "Тебе больше нравится вести или подчиняться?",
+      "О чём ты думаешь, когда смотришь на меня в постели?",
+      "Какое моё слово или звук сводит тебя с ума?",
+      "Какое время суток для близости тебе нравится больше?",
+      "Есть ли что-то, что ты хотел(а) бы попробовать вместе?",
+      "Что тебе больше всего нравится в прелюдии?",
+      "Опиши свой идеальный сценарий нашей ночи в трёх словах.",
+      "Какая моя часть тела тебе кажется самой чувственной?"
+    ],
+    dare: [
+      "Сними с себя один предмет одежды.",
+      "Сними с партнёра один предмет одежды.",
+      "Поцелуй партнёра в любое место по его выбору.",
+      "Сделай партнёру чувственный массаж спины 2 минуты.",
+      "Завяжи партнёру глаза и касайся его 1 минуту — пусть угадает, чем.",
+      "Медленно поцелуй партнёра от шеи до плеча.",
+      "Опиши шёпотом, что ты сделаешь с партнёром этой ночью.",
+      "Пусть партнёр выберет для тебя любое задание на 1 минуту.",
+      "Проведи кубиком льда (или холодными пальцами) по шее партнёра.",
+      "Станцуй для партнёра медленный и соблазнительный танец.",
+      "Целуй партнёра 30 секунд, не используя руки.",
+      "Полежи на партнёре 1 минуту, ничего не говоря.",
+      "Покажи партнёру, как ты любишь, чтобы тебя целовали.",
+      "Позволь партнёру одну минуту делать с тобой что угодно (в рамках ваших правил).",
+      "Сделай партнёру поцелуй, от которого у него побегут мурашки."
+    ]
+  }
+};
+const DICE = {
+  1: {what:["Обнять","Поцеловать","Погладить","Помассировать","Подуть на","Прошептать в"], where:["Руки","Щёку","Лоб","Плечи","Волосы","Ладонь"]},
+  2: {what:["Поцеловать","Погладить","Укусить нежно","Помассировать","Подуть на","Облизнуть"], where:["Шею","Ухо","Губы","Спину","Живот","Запястье"]},
+  3: {what:["Поцеловать","Облизнуть","Укусить нежно","Помассировать","Подуть на","Ласкать"], where:["Шею","Грудь","Бёдра","Живот","Спину","Где захочешь"]}
+};
+const TIMES = [10,15,20,30,45,60];
+const TALK = [
+  "Какой момент наших отношений ты бы прожил(а) ещё раз?",
+  "Что для тебя значит «быть рядом»?",
+  "Какую нашу традицию ты бы хотел(а) завести?",
+  "Чего ты боишься в отношениях?",
+  "Что я сделал(а) за последний месяц, что тебе особенно понравилось?",
+  "Какой язык любви тебе ближе: слова, подарки, время, помощь или прикосновения?",
+  "Где ты видишь нас через пять лет?",
+  "Что ты хотел(а) бы, чтобы я лучше понимал(а) про тебя?",
+  "О какой мечте ты мне ещё не рассказывал(а)?",
+  "Как ты понимаешь, что я на тебя обиделся(ась)?",
+  "Какое качество во мне тебя больше всего удивило?",
+  "Какой самый смешной случай был у нас вдвоём?",
+  "Что тебе помогает помириться после ссоры?",
+  "Какой подарок от меня был самым ценным?",
+  "Какое приключение мы должны пережить вместе?",
+  "За что ты гордишься нами как парой?",
+  "Что бы ты сказал(а) себе в день нашего знакомства?",
+  "Как выглядит для тебя идеальное воскресенье со мной?"
+];
+
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("couples:"+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem("couples:"+k, JSON.stringify(v)); }catch(e){} }
+};
+
+const S = {
+  mode: store.get("mode","tod"),
+  level: store.get("level",1),
+  names: store.get("names",["",""]),
+  score: store.get("score",[0,0]),
+  custom: store.get("custom",[]),
+  turn: store.get("turn",0),
+  used: {},           // de-dup within a session
+  pending: false
+};
+const $ = id => document.getElementById(id);
+const name = i => S.names[i] || (i ? "Игрок 2" : "Игрок 1");
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+const save = () => { store.set("mode",S.mode); store.set("level",S.level); store.set("names",S.names); store.set("score",S.score); store.set("custom",S.custom); store.set("turn",S.turn); };
+const LEVELS = {1:"Нежно",2:"Флирт",3:"Жарко 18+"};
+
+function draw(type){
+  const pool = DECK[S.level][type].concat(S.custom.filter(c=>c.type===type).map(c=>c.text));
+  const key = S.level+type;
+  let used = S.used[key] || [];
+  if (used.length >= pool.length) used = [];
+  const free = pool.filter(t => !used.includes(t));
+  const t = pick(free);
+  used.push(t); S.used[key] = used;
+  return {t, left: pool.length - used.length};
+}
+
+function renderHeader(){
+  $("who").textContent = name(S.turn);
+  $("score").textContent = `${name(0)} ${S.score[0]} : ${S.score[1]} ${name(1)}`;
+  document.querySelectorAll("#levels .chip").forEach(b=>b.setAttribute("aria-pressed", +b.dataset.level===S.level));
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.mode===S.mode));
+  $("modeTod").hidden = S.mode!=="tod";
+  $("modeDice").hidden = S.mode!=="dice";
+  $("modeTalk").hidden = S.mode!=="talk";
+  $("levels").hidden = S.mode==="talk";
+  $("levelName").textContent = LEVELS[S.level];
+}
+
+function showCard(type){
+  const {t,left} = draw(type);
+  $("kind").textContent = `${name(S.turn)} · ${type==="truth"?"Правда":"Действие"}`;
+  $("text").textContent = t;
+  $("left").textContent = `осталось ${left}`;
+  const c = $("card"); c.classList.remove("flip"); void c.offsetWidth; c.classList.add("flip");
+  $("chooseRow").hidden = true; $("doneRow").hidden = false; S.pending = true;
+}
+function endTurn(scored){
+  if (scored) S.score[S.turn]++;
+  S.turn = 1 - S.turn; S.pending = false;
+  $("chooseRow").hidden = false; $("doneRow").hidden = true;
+  $("kind").textContent = `Ход: ${name(S.turn)}`;
+  $("text").textContent = "Правда или действие?";
+  $("left").textContent = "";
+  save(); renderHeader();
+}
+
+let timerId = null, diceSecs = 30;
+function roll(){
+  const d = DICE[S.level];
+  const w = pick(d.what), p = pick(d.where); diceSecs = pick(TIMES);
+  [["d1",w],["d2",p],["d3",diceSecs+" сек"]].forEach(([id,v],i)=>{
+    const el=$(id); el.classList.remove("roll"); void el.offsetWidth; el.classList.add("roll");
+    el.querySelector("span").textContent=v;
+  });
+  $("diceSentence").innerHTML = "";
+  const b = document.createElement("b"); b.textContent = name(S.turn);
+  $("diceSentence").append(b, document.createTextNode(`: ${w.toLowerCase()} — ${p.toLowerCase()}, ${diceSecs} секунд`));
+  stopTimer(); $("timer").hidden = true;
+  S.turn = 1 - S.turn; save(); renderHeader();
+}
+function fmt(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function stopTimer(){ clearInterval(timerId); timerId=null; $("btnTimer").textContent="Таймер"; }
+function startTimer(){
+  if (timerId){ stopTimer(); return; }
+  let s = diceSecs; $("timer").hidden=false; $("timer").textContent=fmt(s); $("btnTimer").textContent="Стоп";
+  timerId = setInterval(()=>{ s--; $("timer").textContent = s>0?fmt(s):"Время!"; if(s<=0){ stopTimer(); try{navigator.vibrate&&navigator.vibrate(300)}catch(e){} } },1000);
+}
+
+let talkUsed = [];
+function nextTalk(){
+  if (talkUsed.length>=TALK.length) talkUsed=[];
+  const t = pick(TALK.filter(x=>!talkUsed.includes(x))); talkUsed.push(t);
+  $("talkText").textContent = t;
+  const c=$("talkCard"); c.classList.remove("flip"); void c.offsetWidth; c.classList.add("flip");
+}
+
+function renderCustom(){
+  const ul=$("customList"); ul.innerHTML="";
+  if (!S.custom.length){ const li=document.createElement("li"); li.innerHTML="<span>Пока пусто. Напишите задание выше и выберите тип.</span>"; ul.append(li); return; }
+  S.custom.forEach((c,i)=>{
+    const li=document.createElement("li");
+    const em=document.createElement("em"); em.textContent=c.type==="truth"?"Правда":"Действие";
+    const sp=document.createElement("span"); sp.textContent=c.text;
+    const del=document.createElement("button"); del.textContent="✕"; del.setAttribute("aria-label","Удалить");
+    del.onclick=()=>{ S.custom.splice(i,1); save(); renderCustom(); };
+    li.append(em,sp,del); ul.append(li);
+  });
+}
+function addCustom(type){
+  const v=$("customInput").value.trim(); if(!v) return;
+  S.custom.push({type,text:v}); $("customInput").value=""; save(); renderCustom();
+}
+
+// wiring
+$("btnTruth").onclick=()=>showCard("truth");
+$("btnDare").onclick=()=>showCard("dare");
+$("btnDone").onclick=()=>endTurn(true);
+$("btnSkip").onclick=()=>endTurn(false);
+$("btnRoll").onclick=roll;
+$("btnTimer").onclick=startTimer;
+$("btnTalk").onclick=nextTalk;
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{ S.mode=b.dataset.mode; stopTimer(); save(); renderHeader(); });
+document.querySelectorAll("#levels .chip").forEach(b=>b.onclick=()=>{ S.level=+b.dataset.level; save(); renderHeader(); });
+$("btnSettings").onclick=()=>{ $("p1").value=S.names[0]; $("p2").value=S.names[1]; $("sheetSettings").hidden=false; };
+$("btnSaveSettings").onclick=()=>{ S.names=[$("p1").value.trim(),$("p2").value.trim()]; save(); renderHeader(); if(!S.pending) endTurnLabel(); $("sheetSettings").hidden=true; };
+$("btnReset").onclick=()=>{ S.score=[0,0]; S.turn=0; save(); renderHeader(); $("btnReset").textContent="Счёт обнулён"; setTimeout(()=>$("btnReset").textContent="Обнулить счёт",1500); };
+$("btnCustom").onclick=()=>{ renderCustom(); $("sheetCustom").hidden=false; };
+$("btnCloseCustom").onclick=()=>$("sheetCustom").hidden=true;
+$("addTruth").onclick=()=>addCustom("truth");
+$("addDare").onclick=()=>addCustom("dare");
+document.querySelectorAll(".sheet").forEach(s=>s.addEventListener("click",e=>{ if(e.target===s) s.hidden=true; }));
+function endTurnLabel(){ $("kind").textContent=`Ход: ${name(S.turn)}`; }
+
+renderHeader();
+$("diceWho").textContent = name(S.turn);
+if (!S.names[0] && !S.names[1]) $("sheetSettings").hidden = false;
+</script>
